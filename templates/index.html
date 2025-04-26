@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Lane Detection</title>
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #2ecc71;
+      --primary-dark: #27ae60;
+      --bg-color: #f9f9f9;
+      --text-color: #333;
+      --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #232526, #414345);
+      background-repeat: no-repeat;
+      background-size: cover;
+      position: relative;
+    }
+
+    h1 {
+      margin: 20px 0;
+      font-size: 2.5rem;
+      color: #00ffd5;
+      text-shadow: 1px 1px 1px #ccc;
+      z-index: 1;
+    }
+
+    #content {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      width: 100%;
+      justify-content: center;
+      gap: 20px;
+      z-index: 1;
+    }
+
+    #videoContainer {
+      flex: 2;
+      min-width: 300px;
+      max-width: 800px;
+      position: relative;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    aside {
+      flex: 1;
+      min-width: 250px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    aside h2 {
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+      color: #00ffd5;
+    }
+
+    video, canvas {
+      display: block;
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      gap: 20px;
+      z-index: 1;
+    }
+
+    button {
+      padding: 12px 28px;
+      font-size: 1rem;
+      background-color: #00ffd5;
+      color: black;
+      border: 2px solid white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: var(--primary-dark);
+      border-color: #fff;
+      box-shadow: 0 0 10px var(--primary-color);
+    }
+
+    #loading {
+      margin-top: 10px;
+      font-style: italic;
+      color: #666;
+      animation: pulse 1.5s infinite;
+      z-index: 1;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    #particles-js {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    /* Chatbot Icon */
+    #chatbotIcon {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #00ffd5;
+      color: black;
+      font-size: 28px;
+      padding: 15px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00ffd5;
+      z-index: 999;
+      transition: transform 0.3s ease;
+    }
+    #chatbotIcon:hover {
+      transform: scale(1.1);
+    }
+
+    /* Chatbot Box */
+    #chatbot {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 300px;
+      max-height: 400px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      z-index: 999;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* Chatbot Header */
+    #chatbotHeader {
+      background: #00ffd5;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: black;
+      font-weight: bold;
+    }
+
+    /* Close Button */
+    #closeBtn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* Chatlog and Input */
+    #chatLog {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      color: white;
+    }
+    #chatInput {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: rgba(255,255,255,0.05);
+      color: white;
+    }
+    #chatbot button {
+      padding: 8px;
+      background: #00ffd5;
+      border: none;
+      color: black;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="particles-js"></div>
+
+  <h1>🚗 LANE IQ</h1>
+
+  <div class="controls">
+    <button id="startButton" onclick="startDetection()">Start Detection</button>
+    <button id="stopButton" onclick="stopDetection()" disabled>Stop Detection</button>
+  </div>
+
+  <div id="loading">Initializing camera and AI model...</div>
+
+  <div id="content">
+    <div id="videoContainer">
+      <video id="liveVideo" autoplay></video>
+      <canvas id="outputCanvas" hidden></canvas>
+    </div>
+
+    <aside>
+      <h2>Violations</h2>
+      <ul id="violationList"></ul>
+      <h2>Points</h2>
+      <p id="points">100</p>
+    </aside>
+  </div>
+
+  <!-- Chatbot Icon and Box -->
+  <div id="chatbotIcon" onclick="toggleChatbot()">💬</div>
+
+  <div id="chatbot" style="display: none;">
+    <div id="chatbotHeader">
+      <span>🤖 LaneBot</span>
+      <button id="closeBtn" onclick="toggleChatbot()">×</button>
+    </div>
+    <div id="chatLog"></div>
+    <div style="display: flex; border-top: 1px solid rgba(255,255,255,0.2);">
+      <input id="chatInput" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let video = document.getElementById('liveVideo');
+    let canvas = document.getElementById('outputCanvas');
+    let ctx = canvas.getContext('2d');
+    let isDetecting = false;
+    let violationList = document.getElementById('violationList');
+    let pointsElement = document.getElementById('points');
+    let points = 100;
+    let fps = 10;
+    let intervalId;
+
+    
+
+    async function loadModel() {
+      try {
+        const response = await fetch('/load-model');
+        if (!response.ok) throw new Error('Model loading failed');
+        console.log('Model loaded successfully');
+      } catch (error) {
+        console.error('Error loading model:', error);
+      }
+    }
+
+    async function startDetection() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('startButton').disabled = true;
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+
+        video.srcObject = stream;
+        await video.play();
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        video.style.transform = 'scaleX(-1)';
+
+        isDetecting = true;
+        document.getElementById('stopButton').disabled = false;
+        document.getElementById('loading').style.display = 'none';
+
+        await loadModel();
+        intervalId = setInterval(processFrame, 1000 / fps);
+
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        alert('Camera access denied or not available');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('startButton').disabled = false;
+      }
+    }
+
+    async function processFrame() {
+      if (!isDetecting) return;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      try {
+        const response = await fetch('/process-frame', {
+          method: 'POST',
+          body: JSON.stringify({ image: Array.from(imageData.data) }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+        drawResults(result);
+
+      } catch (error) {
+        console.error('Processing error:', error);
+      }
+    }
+
+    function drawResults(detections) {
+      detections.forEach(det => {
+        ctx.beginPath();
+        ctx.rect(det.x, det.y, det.width, det.height);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#FF0000';
+        ctx.stroke();
+
+        ctx.fillStyle = '#FF0000';
+        ctx.font = '16px Segoe UI';
+        ctx.fillText(`${det.label} (${Math.round(det.confidence * 100)}%)`, det.x, det.y - 5);
+
+        logViolation(det.label);
+      });
+    }
+
+    function logViolation(label) {
+      const time = new Date().toLocaleTimeString();
+      const li = document.createElement('li');
+      li.textContent = `${label} at ${time}`;
+      violationList.appendChild(li);
+      points -= 5;
+      pointsElement.textContent = points;
+    }
+
+    function stopDetection() {
+      isDetecting = false;
+      document.getElementById('stopButton').disabled = true;
+      document.getElementById('startButton').disabled = false;
+      clearInterval(intervalId);
+
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+      }
+    }
+
+    window.onload = () => {
+      canvas.width = video.width;
+      canvas.height = video.height;
+    };
+
+    // Initialize Particle.js
+    particlesJS("particles-js", {
+      particles: {
+        number: { value: 100, density: { enable: true, value_area: 800 }},
+        color: { value: "#00ffd5" },
+        shape: { type: "circle" },
+        opacity: { value: 0.5, random: true },
+        size: { value: 3, random: true },
+        line_linked: { enable: true, distance: 150, color: "#00ffd5", opacity: 0.4, width: 1 },
+        move: { enable: true, speed: 3, random: true }
+      },
+      interactivity: {
+        events: {
+          onhover: { enable: true, mode: "grab" },
+          onclick: { enable: true, mode: "push" }
+        }
+      },
+      retina_detect: true
+    });
+
+    function toggleChatbot() {
+      const chatbot = document.getElementById('chatbot');
+      chatbot.style.display = chatbot.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const chatLog = document.getElementById('chatLog');
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+
+      const userBubble = document.createElement('div');
+      userBubble.textContent = "You: " + userMessage;
+      userBubble.style.margin = "5px 0";
+      chatLog.appendChild(userBubble);
+
+      input.value = '';
+      chatLog.scrollTop = chatLog.scrollHeight;
+
+      try {
+    const response = await fetch('/chat-gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: userMessage })
+    });
+    const data = await response.json();
+
+        const botBubble = document.createElement('div');
+        botBubble.textContent = "Bot: " + data.message;
+        botBubble.style.margin = "5px 0";
+        botBubble.style.color = "#00ffd5";
+        chatLog.appendChild(botBubble);
+
+        chatLog.scrollTop = chatLog.scrollHeight;
+      } catch (error) {
+        const errorBubble = document.createElement('div');
+        errorBubble.textContent = "Bot: Sorry, there was an error!";
+        errorBubble.style.margin = "5px 0";
+        errorBubble.style.color = "red";
+        chatLog.appendChild(errorBubble);
+      }
+    }
+  </script>
+
+</body>
+</html>
